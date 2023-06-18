@@ -1,0 +1,7 @@
+__pycache__/
+.vscode/
+*.egg-info/
+*.mat
+*.log
+*.pt
+*.pth
