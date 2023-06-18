@@ -6,8 +6,8 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from datasets import DNNDataset
-from model import MultiLayerPerceptron
+from datasets import MLPDataset
+from models import MultiLayerPerceptron
 from configs import dnn as conf
 from src.utils.qm7 import load_qm7
 from src.utils.common import split_dictionary
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_dataloader(config, data, max_value=None):
-    dataset = DNNDataset(
+    dataset = MLPDataset(
         data=data,
         noise=config.NOISE,
         step=config.EXPAND_STEPS,
@@ -65,10 +65,10 @@ def train_one_epoch(config, model, dataloader, loss_fn, optimizer, device):
     last_loss = 0.0
     model.train()
     for batch_idx, (X, y) in enumerate(dataloader):
-        X = X.squeeze(1)
+        X = X.squeeze(1).to(device)
         y = y.to(device)
         optimizer.zero_grad()
-        y_pred = model(X.cuda())
+        y_pred = model(X)
         loss = loss_fn(y_pred, y)
         loss.backward()
         optimizer.step()
@@ -98,8 +98,12 @@ def evaluate(model, dataloader, loss_fn, device):
 
 
 def train(config, device, num_folds: int = 5):
+    # init
     os.makedirs(config.CHECKPOINT_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(config.LOGFILE), exist_ok=True)
+    os.system(f"touch {config.LOGFILE}")
     # wandb.init(project="chemml", config=config)
+
     for fold in range(num_folds):
         train_single_fold(config, device, fold)
 

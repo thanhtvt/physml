@@ -23,7 +23,7 @@ class NNBaseDataset(Dataset):
         raise NotImplementedError
 
 
-class DNNDataset(NNBaseDataset):
+class MLPDataset(NNBaseDataset):
     def __init__(
         self,
         data: Dict,

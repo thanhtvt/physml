@@ -4,15 +4,13 @@ Representations of molecules listed in the NeurIPS 2012 paper
 """
 
 import numpy as np
-import torch
-from typing import Union
 
 
 def represent(
-    X: Union[np.ndarray, torch.Tensor],
+    X: np.ndarray,
     type: str = "coulomb",
     norm: bool = True
-) -> Union[np.ndarray, torch.Tensor]:
+) -> np.ndarray:
     """
     Represent molecules as coulomb matrices
 
@@ -30,12 +28,14 @@ def represent(
     elif type == "eigen":
         X_after = get_eigenspectrum(X)
     elif type == "randomize":
-        X_after = randomly_sort_coulomb(X)
+        X_after, expand_ids = randomly_sort_coulomb(X)
     else:
         raise ValueError(f"Unknown representation type: {type}")
 
     if norm:
         X_after = normalize(X_after)
+    if type == "randomize":
+        return X_after, expand_ids
     return X_after
 
 
@@ -77,25 +77,15 @@ class Input:
         return (X - self.mean) / self.std
 
     def forward(self, X):
-        print("0:", X.shape)
         X = self.realize(X)
-        print("1:", X.shape)
         X = self.expand(X)
-        print("2:", X.shape)
         X = self.normalize(X)
-        print("3:", X.shape)
         return X.astype('float32')
 
 
-def get_eigenspectrum(coulomb: Union[np.ndarray, torch.Tensor]) -> Union[np.ndarray, torch.Tensor]:
-    is_torch = False
-    if isinstance(coulomb, torch.Tensor):
-        is_torch = True
-        coulomb = coulomb.numpy()
+def get_eigenspectrum(coulomb: np.ndarray) -> np.ndarray:
     values = np.linalg.eigvalsh(coulomb)
-    values = np.sort(values)[::-1]
-    if is_torch:
-        return torch.from_numpy(values)
+    # values = np.sort(values)[::-1]    # cause bug
     return values
 
 
@@ -149,6 +139,7 @@ def randomly_sort_coulomb(
         noise_level: noise level for sampling
     """
     rand_coulomb = []
+    ids = []
     for _ in range(n_samples):
         idx = np.random.randint(low=0, high=coulomb_matrix.shape[0])
         coulomb = coulomb_matrix[idx]
@@ -158,6 +149,7 @@ def randomly_sort_coulomb(
             p = np.argsort(row_norms + e)
             new = coulomb[p, :][:, p]
             rand_coulomb.append(new)
-    # TODO: process y to match the number of samples of X
+        ids.extend([idx] * n_augmented_samples)
 
-    return np.array(rand_coulomb)
+    new_coulomb = np.concatenate([coulomb_matrix, np.array(rand_coulomb)], axis=0)
+    return new_coulomb, ids
