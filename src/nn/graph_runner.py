@@ -5,7 +5,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import VirtualNode
 
 from src.nn.configs import graph as conf
-from src.nn.datasets import GraphDataset, QM7Dataset
+from src.nn.datasets import GraphDataset
 from src.nn.models import MPNN
 from src.nn.trainers import GraphTrainer
 
@@ -46,19 +46,6 @@ def init_train(device, fold: int):
                                 data_dir=conf.DATA_DIR,
                                 fold=fold,
                                 train=False)
-
-    # train_dataset = QM7Dataset(root=conf.SAVE_DATA_DIR,
-    #                            transform=VirtualNode(),
-    #                            data_dir=conf.DATA_DIR,
-    #                            fold=fold,
-    #                            train=True)
-    # test_dataset = QM7Dataset(root=conf.SAVE_DATA_DIR,
-    #                           transform=VirtualNode(),
-    #                           data_dir=conf.DATA_DIR,
-    #                           fold=fold,
-    #                           train=False)
-    # train_dataset = QM7Dataset(root=conf.SAVE_DATA_DIR, transform=VirtualNode())
-    # test_dataset = QM7Dataset(root=conf.SAVE_DATA_DIR, transform=VirtualNode())
 
     train_loader = DataLoader(train_dataset,
                               batch_size=conf.BATCH_SIZE,
