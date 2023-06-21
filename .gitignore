@@ -5,3 +5,5 @@ __pycache__/
 *.log
 *.pt
 *.pth
+logs/
+wandb/
