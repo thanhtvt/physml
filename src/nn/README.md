@@ -55,3 +55,4 @@ Please check the report for more details.
 ## References
 1. [Learning Invariant Representations of Molecules for Atomization Energy Prediction](https://proceedings.neurips.cc/paper_files/paper/2012/file/115f89503138416a242f40fb7d7f338e-Paper.pdf)
 2. [Neural Message Passing for Quantum Chemistry](https://arxiv.org/pdf/1704.01212.pdf)
+3. [Gated Graph Sequence Neural Networks](https://arxiv.org/pdf/1511.05493.pdf)

@@ -44,7 +44,7 @@ python runml.py --models kr --represent eigen --not-norm
 ```
 
 ## Results
-Coming soon...
+Please check the report for more details.
 
 ## References
 1. [Learning Invariant Representations of Molecules for Atomization Energy Prediction](https://proceedings.neurips.cc/paper_files/paper/2012/file/115f89503138416a242f40fb7d7f338e-Paper.pdf)
