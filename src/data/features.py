@@ -51,6 +51,17 @@ def get_eigenspectrum(coulomb: np.ndarray, sort: bool = False) -> np.ndarray:
     return eigs
 
 
+def encode_atom_charge(atom_charge: np.ndarray):
+    unique_atom = np.unique(atom_charge)    # include 0 (no atom)
+    unique_atom = np.sort(unique_atom)
+    atom_dict = {atom: i for i, atom in enumerate(unique_atom)}
+    atom_types = []
+    for charge in atom_charge:
+        atype = np.array([atom_dict[atom] for atom in charge])
+        atom_types.append(atype)
+    return np.stack(atom_types)
+
+
 def sort_coulomb(coulomb: np.ndarray) -> np.ndarray:
     """
     Sort coulomb matrices by descending order
@@ -87,8 +98,8 @@ def normalize(X: np.ndarray):
 
 def randomly_sort_coulomb(
     coulomb_matrix: np.ndarray,
-    n_samples: int = 1,
-    n_augmented_samples: int = 1,
+    n_samples: int = 3000,
+    n_augmented_samples: int = 4,
     noise_level: float = 1.0
 ) -> np.ndarray:
     """

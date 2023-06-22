@@ -82,7 +82,7 @@ def parse_args():
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["linear", "svr", "kr", "gp", "mlp"],
+        default=["linear", "svr", "kr", "mlp", "knn"],
         help="list of models to run",
     )
     parser.add_argument(

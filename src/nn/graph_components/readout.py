@@ -9,6 +9,7 @@ class MLPReadout(nn.Module):
         node_input_dim: int,
         node_hidden_dim: int,
         node_output_dim: int,
+        dropout_rate: float = 0.2,
         mode: str = "mean"
     ):
         super(MLPReadout, self).__init__()
@@ -17,6 +18,7 @@ class MLPReadout(nn.Module):
         self.project_node_features = nn.Sequential(
             nn.Linear(node_input_dim, node_hidden_dim),
             nn.ReLU(),
+            nn.Dropout(dropout_rate),
             nn.Linear(node_hidden_dim, node_output_dim)
         )
         if mode == "sum":

@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data, InMemoryDataset
 from typing import Dict, Tuple
 from src.utils.qm7 import get_fold_data
-from src.data.features import sort_coulomb, get_eigenspectrum
+from src.data.features import sort_coulomb, get_eigenspectrum, encode_atom_charge
 
 
 class NNBaseDataset(Dataset):
@@ -107,31 +107,47 @@ class GraphDataset(InMemoryDataset):
         else:
             return [f"test_fold_{self.fold}.pt"]
 
-    # def download(self):
-    #     download_url(self.url, self.data_dir)
-
     def process(self):
         dataset = scipy.io.loadmat(self.data_path)
         database = get_fold_data(dataset, self.fold)
         dataset = database[0] if self.train else database[1]
-        coulomb = torch.from_numpy(sort_coulomb(dataset["X"]))
+        # coulomb = torch.from_numpy(sort_coulomb(dataset["X"]))
+        coulomb = torch.from_numpy(dataset["X"])
         atom_energy = torch.from_numpy(dataset["T"].squeeze())
+        atom_type = torch.from_numpy(encode_atom_charge(dataset["Z"]))
         # coordinates = torch.from_numpy(dataset["R"])
 
         data_list = []
         n_samples = len(coulomb)
         for i in range(n_samples):
-            edge_index = torch.nonzero(coulomb[i], as_tuple=False).t().contiguous()
-            edge_attr = coulomb[i, edge_index[0], edge_index[1]].view(-1, 1)
+            # Sort coulomb matrix
+            mat = coulomb[i]
+            norm = torch.linalg.norm(mat, dim=0)
+            order = torch.argsort(norm, descending=True)
+            mat = mat[order, :][:, order]
+
+            # Get edge index and edge attribute
+            edge_index = torch.nonzero(mat, as_tuple=False).t().contiguous()
+            edge_attr = mat[edge_index[0], edge_index[1]].view(-1, 1)
             y = atom_energy[i].view(1, -1)
 
             # Process feature
+            # 1. eigenvalues
             num_atoms = torch.sqrt(torch.tensor(edge_attr.shape[0])).int().item()
             coulomb_mat = edge_attr.view(num_atoms, num_atoms)
             eigs = torch.from_numpy(get_eigenspectrum(coulomb_mat.numpy()))
             eigs = eigs.view(-1, 1)
 
-            data = Data(x=eigs, edge_index=edge_index, edge_attr=edge_attr, y=y)
+            # 2. Atom type (based on atom charge)
+            # atype = atom_type[i][order]
+            # atype = atype[atype != 0]
+            # atype = atype.view(-1, 1)
+
+            # 3. Concat
+            # x = torch.cat([eigs, atype], dim=1)
+            x = eigs
+
+            data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
             data.num_nodes = edge_index.max().item() + 1  # type: ignore
             data_list.append(data)
 

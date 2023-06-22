@@ -14,18 +14,21 @@ class MPNNGNN(nn.Module):
         node_output_dim: int,
         edge_input_dim: int,
         edge_hidden_dim: int,
-        num_step_message_passing: int,
+        dropout_rate: float = 0.2,
+        num_step_message_passing: int = 3,
     ):
         super(MPNNGNN, self).__init__()
 
         self.project_node_features = nn.Sequential(
             nn.Linear(node_input_dim, node_output_dim),
             nn.ReLU(),
+            nn.Dropout(dropout_rate),
         )
         self.num_step_message_passing = num_step_message_passing
         edge_network = nn.Sequential(
             nn.Linear(edge_input_dim, edge_hidden_dim),
             nn.ReLU(),
+            nn.Dropout(dropout_rate),
             nn.Linear(edge_hidden_dim, node_output_dim * node_output_dim),
         )
         self.gnn = NNConv(

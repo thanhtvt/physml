@@ -74,9 +74,11 @@ class MPNN(nn.Module):
         edge_input_dim: int,
         gnn_node_output_dim: int = 8,
         gnn_edge_hidden_dim: int = 16,
+        gnn_dropout_rate: float = 0.2,
         num_step_message_passing: int = 3,
         readout_node_hidden_dim: int = 8,
         readout_node_output_dim: int = 8,
+        readout_dropout_rate: float = 0.2,
         pooling_mode: str = "mean",
         output_dim: int = 1,
     ):
@@ -87,12 +89,14 @@ class MPNN(nn.Module):
             gnn_node_output_dim,
             edge_input_dim,
             gnn_edge_hidden_dim,
+            gnn_dropout_rate,
             num_step_message_passing,
         )
         self.readout = MLPReadout(
             gnn_node_output_dim,
             readout_node_hidden_dim,
             readout_node_output_dim,
+            readout_dropout_rate,
             pooling_mode
         )
         self.predict = nn.Linear(readout_node_output_dim, output_dim)

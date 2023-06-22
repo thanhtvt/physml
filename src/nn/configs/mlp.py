@@ -1,5 +1,7 @@
+PROJECT_DIR = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml"
+
 # DATA CONFIGS
-DATA_DIR = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml/data"
+DATA_DIR = PROJECT_DIR + "/data"
 EXPAND_STEPS = 1
 NOISE = 1.0
 TRAIN_RATIO = 0.9
@@ -13,16 +15,17 @@ ENERGY_MEAN = -1538.0377
 ENERGY_STD = 223.91891
 
 # LOGGING
-LOGFILE = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml/logs/nn.log"
+LOGFILE = PROJECT_DIR + "/logs/nn.log"
 
 # WANDB CONFIG
 WANDB_PROJECT = "physml"
-WANDB_DIR = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml/logs"
+WANDB_DIR = PROJECT_DIR + "/logs"
+WANDB_ID = "jneuq184"
 
 # TRAINING CONFIGS
 EPOCHS = 1000
 BATCH_SIZE = 256
-CHECKPOINT_DIR = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml/checkpoints/nn"
+CHECKPOINT_DIR = PROJECT_DIR + "/checkpoints/nn"
 LOG_INTERVAL = 20
 NUM_WORKERS = 8
 PATIENCE = 15

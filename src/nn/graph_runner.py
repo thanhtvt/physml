@@ -30,6 +30,11 @@ def parse_args():
         action="store_true",
         help="Create a new wandb run",
     )
+    parser.add_argument(
+        "--resume-training",
+        action="store_true",
+        help="Continue training from a checkpoint",
+    )
     args = parser.parse_args()
     return args
 
@@ -64,9 +69,11 @@ def init_train(device, fold: int):
         edge_input_dim=conf.EDGE_INPUT_DIM,
         gnn_node_output_dim=conf.GNN_NODE_OUTPUT_DIM,
         gnn_edge_hidden_dim=conf.GNN_EDGE_HIDDEN_DIM,
+        gnn_dropout_rate=conf.GNN_DROPOUT_RATE,
         num_step_message_passing=conf.NUM_STEP_MESSAGE_PASSING,
         readout_node_hidden_dim=conf.READOUT_NODE_HIDDEN_DIM,
         readout_node_output_dim=conf.READOUT_NODE_OUTPUT_DIM,
+        readout_dropout_rate=conf.READOUT_DROPOUT_RATE,
         pooling_mode=conf.POOLING_MODE,
         output_dim=conf.OUTPUT_DIM,
     ).to(device)
@@ -117,8 +124,10 @@ def train(args):
         optimizer=optimizer,
         scheduler=scheduler,
         resume=resume,
-        checkpoint_name=f"graph_{args.fold}.pt",
+        checkpoint_name=f"graph2_{args.fold}.pt",
     )
+    if args.resume_training:
+        trainer.load_model()
 
     trainer.fit(train_dataloader, test_dataloader)
 

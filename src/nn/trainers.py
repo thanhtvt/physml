@@ -22,18 +22,18 @@ class Trainer:
         config,
         model,
         optimizer,
-        scheduler,
+        scheduler: torch.optim.lr_scheduler._LRScheduler = None,
         resume: str = "auto",
         checkpoint_name: str = "model.pt"
     ):
         self.config = config
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.checkpoint_name = checkpoint_name
         self.model = model
         self.scheduler = scheduler
         self.optimizer = optimizer
         self.loss_fn = torch.nn.MSELoss()
         self.logger = get_logger(config.LOGFILE)
+        self.checkpoint_path = os.path.join(config.CHECKPOINT_DIR, checkpoint_name)
 
         # create folders/files
         os.makedirs(self.config.CHECKPOINT_DIR, exist_ok=True)
@@ -50,26 +50,6 @@ class Trainer:
         )
 
     def fit(self, train_dataloader, val_dataloader):
-        raise NotImplementedError
-
-    def evaluate(self):
-        raise NotImplementedError
-
-    def mean_absolute_error(self, y_pred, y_true):
-        return torch.mean(torch.abs(y_true - y_pred))
-
-    def save_model(self):
-        torch.save(self.model,
-                   os.path.join(self.config.CHECKPOINT_DIR, self.checkpoint_name))
-
-    def log(self, msg: str):
-        # tqdm.write(msg)
-        self.logger.debug(msg)
-
-
-class MLPTrainer(Trainer):
-
-    def fit(self, train_dataloader, val_dataloader):
         # Track gradients, weights, and biases
         wandb.watch(self.model,
                     criterion=self.loss_fn,
@@ -78,7 +58,7 @@ class MLPTrainer(Trainer):
                     log_graph=True)
 
         plaetau_count = 0
-        best_loss = 1e6
+        best_loss = 1e7
         for epoch in tqdm(range(self.config.EPOCHS), desc="Training"):
             self.log(f"Epoch {epoch + 1}")
             avg_train_loss = self.train_one_epoch(train_dataloader)
@@ -92,22 +72,52 @@ class MLPTrainer(Trainer):
             self.log("=========================")
             wandb.log({"train_loss": avg_train_loss,
                        "val_loss": avg_val_loss,
-                       "val_mae": avg_val_mae,
-                       "lr": self.scheduler.get_last_lr()[0]})
+                       "val_mae": avg_val_mae})
+            if self.scheduler is not None:
+                wandb.log({"lr": self.scheduler.get_last_lr()[0]})
 
             # Update scheduler
-            self.scheduler.step()
+            self.scheduler.step() if self.scheduler is not None else None
 
             # Save model and early stopping (if needed)
             if avg_val_loss < best_loss:
                 best_loss = avg_val_loss
                 plaetau_count = 0
-                self.save_model()
+                self.save_model(epoch, avg_val_loss)
             else:
                 plaetau_count += 1
                 if self.config.PATIENCE > 0 and plaetau_count > self.config.PATIENCE:
                     self.log(f"Early stopping! Model has stopped improving at loss {best_loss:.4f}")
                     break
+
+    def evaluate(self):
+        raise NotImplementedError
+
+    def mean_absolute_error(self, y_pred, y_true):
+        return torch.mean(torch.abs(y_true - y_pred))
+
+    def save_model(self, epoch: int, loss: float):
+        torch.save({
+            "optimizer": self.optimizer.state_dict(),
+            "model": self.model.state_dict(),
+            "epoch": epoch,
+            "loss": loss,
+        }, self.checkpoint_path)
+
+    def load_model(self):
+        checkpoint = torch.load(self.checkpoint_path)
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.model.load_state_dict(checkpoint["model"])
+        epoch = checkpoint["epoch"]
+        loss = checkpoint["loss"]
+        self.log(f"Loaded checkpoint from epoch {epoch} with loss {loss:.4f}")
+
+    def log(self, msg: str):
+        # tqdm.write(msg)
+        self.logger.debug(msg)
+
+
+class MLPTrainer(Trainer):
 
     def evaluate(self, val_dataloader):
         self.model.eval()
@@ -150,53 +160,8 @@ class MLPTrainer(Trainer):
 
         return last_loss
 
-    def save_model(self):
-        torch.save(self.model.state_dict(),
-                   os.path.join(self.config.CHECKPOINT_DIR, self.checkpoint_name))
-        self.log("Model saved")
-
 
 class GraphTrainer(Trainer):
-
-    def fit(self, train_dataloader, val_dataloader):
-        # Track gradients, weights, and biases
-        wandb.watch(self.model,
-                    criterion=self.loss_fn,
-                    log="all",
-                    log_freq=self.config.LOG_INTERVAL,
-                    log_graph=True)
-
-        plaetau_count = 0
-        best_loss = 1e6
-        for epoch in tqdm(range(self.config.EPOCHS), desc="Training"):
-            self.log(f"Epoch {epoch + 1}")
-            avg_train_loss = self.train_one_epoch(train_dataloader)
-            avg_val_loss, avg_val_mae = self.evaluate(val_dataloader)
-
-            # Logging
-            # self.log(f"LR: {self.scheduler.get_last_lr()[0]:.4f}")
-            self.log(f"Train Loss: {avg_train_loss:.4f}")
-            self.log(f"Val Loss: {avg_val_loss:.4f}")
-            self.log(f"Val MAE: {avg_val_mae:.4f}")
-            self.log("=========================")
-            wandb.log({"train_loss": avg_train_loss,
-                       "val_loss": avg_val_loss,
-                       "val_mae": avg_val_mae})
-                    #    "lr": self.scheduler.get_last_lr()[0]})
-
-            # Update scheduler
-            # self.scheduler.step()
-
-            # Save model and early stopping (if needed)
-            if avg_val_loss < best_loss:
-                best_loss = avg_val_loss
-                plaetau_count = 0
-                self.save_model()
-            else:
-                plaetau_count += 1
-                if self.config.PATIENCE > 0 and plaetau_count > self.config.PATIENCE:
-                    self.log(f"Early stopping! Model has stopped improving at loss {best_loss:.4f}")
-                    break
 
     def evaluate(self, val_dataloader):
         self.model.eval()
