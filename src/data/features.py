@@ -4,6 +4,7 @@ Representations of molecules listed in the NeurIPS 2012 paper
 """
 
 import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 
 
 def represent(
@@ -51,14 +52,20 @@ def get_eigenspectrum(coulomb: np.ndarray, sort: bool = False) -> np.ndarray:
     return eigs
 
 
-def encode_atom_charge(atom_charge: np.ndarray):
+def encode_atom_charge(atom_charge: np.ndarray, onehot: bool = False):
     unique_atom = np.unique(atom_charge)    # include 0 (no atom)
-    unique_atom = np.sort(unique_atom)
+    if onehot:
+        enc = OneHotEncoder(sparse_output=False)
+        enc.fit(unique_atom.reshape(-1, 1))
     atom_dict = {atom: i for i, atom in enumerate(unique_atom)}
     atom_types = []
     for charge in atom_charge:
-        atype = np.array([atom_dict[atom] for atom in charge])
-        atom_types.append(atype)
+        if onehot:
+            atype = enc.transform(charge.reshape(-1, 1))
+            atom_types.append(atype)
+        else:
+            atype = np.array([atom_dict[atom] for atom in charge])
+            atom_types.append(atype)
     return np.stack(atom_types)
 
 

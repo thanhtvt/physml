@@ -114,7 +114,8 @@ class GraphDataset(InMemoryDataset):
         # coulomb = torch.from_numpy(sort_coulomb(dataset["X"]))
         coulomb = torch.from_numpy(dataset["X"])
         atom_energy = torch.from_numpy(dataset["T"].squeeze())
-        atom_type = torch.from_numpy(encode_atom_charge(dataset["Z"]))
+        atom_types = encode_atom_charge(dataset["Z"], onehot=True)
+        atom_types = torch.from_numpy(atom_types)
         # coordinates = torch.from_numpy(dataset["R"])
 
         data_list = []
@@ -136,16 +137,16 @@ class GraphDataset(InMemoryDataset):
             num_atoms = torch.sqrt(torch.tensor(edge_attr.shape[0])).int().item()
             coulomb_mat = edge_attr.view(num_atoms, num_atoms)
             eigs = torch.from_numpy(get_eigenspectrum(coulomb_mat.numpy()))
-            eigs = eigs.view(-1, 1)
+            eigs = eigs.view(num_atoms, 1)
 
             # 2. Atom type (based on atom charge)
-            # atype = atom_type[i][order]
-            # atype = atype[atype != 0]
-            # atype = atype.view(-1, 1)
+            atype = atom_types[i][order]
+            # only select first num_atoms rows and remove the 0 (no atom) column
+            atype = atype[:num_atoms, 1:]
+            atype = atype.view(num_atoms, -1).float()
 
             # 3. Concat
-            # x = torch.cat([eigs, atype], dim=1)
-            x = eigs
+            x = torch.cat([eigs, atype], dim=1)
 
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
             data.num_nodes = edge_index.max().item() + 1  # type: ignore
