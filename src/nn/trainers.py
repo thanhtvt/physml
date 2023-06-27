@@ -65,7 +65,7 @@ class Trainer:
             avg_val_loss, avg_val_mae = self.evaluate(val_dataloader)
 
             # Logging
-            self.log(f"LR: {self.scheduler.get_last_lr()[0]:.4f}")
+            self.log(f"LR: {self.scheduler.get_last_lr()[0]:.4f}") if self.scheduler else None
             self.log(f"Train Loss: {avg_train_loss:.4f}")
             self.log(f"Val Loss: {avg_val_loss:.4f}")
             self.log(f"Val MAE: {avg_val_mae:.4f}")
