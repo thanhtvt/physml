@@ -17,6 +17,7 @@ class MLPReadout(nn.Module):
         assert mode in ["sum", "mean", "max"], "mode must be sum, mean or max"
         self.project_node_features = nn.Sequential(
             nn.Linear(node_input_dim, node_hidden_dim),
+            nn.BatchNorm1d(node_hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(node_hidden_dim, node_output_dim)

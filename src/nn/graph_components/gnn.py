@@ -21,12 +21,14 @@ class MPNNGNN(nn.Module):
 
         self.project_node_features = nn.Sequential(
             nn.Linear(node_input_dim, node_output_dim),
+            nn.BatchNorm1d(node_output_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
         )
         self.num_step_message_passing = num_step_message_passing
         edge_network = nn.Sequential(
             nn.Linear(edge_input_dim, edge_hidden_dim),
+            nn.BatchNorm1d(edge_hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(edge_hidden_dim, node_output_dim * node_output_dim),
