@@ -38,6 +38,22 @@ def parse_args():
         action="store_true",
         help="Create a new wandb run",
     )
+    parser.add_argument(
+        "--resume-training",
+        action="store_true",
+        help="Continue training from a checkpoint",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Evaluate model on test set",
+    )
+    parser.add_argument(
+        "--checkpoint-name",
+        type=str,
+        default=None,
+        help="Path to checkpoint to resume training from",
+    )
     args = parser.parse_args()
     return args
 
@@ -63,12 +79,15 @@ def get_dataloader(data, feature_type: str):
     return dataloader
 
 
-def init_train(feature_type, device, fold: int):
+def init_train(feature_type, device, fold: int, test: bool = False):
     # Load dataloader
-    data_train, _ = load_qm7(conf.DATA_DIR, fold=fold)
+    data_train, data_test = load_qm7(conf.DATA_DIR, fold=fold)
     data_train, data_val = split_dictionary(data_train, ratio=conf.TRAIN_RATIO)
     train_dataloader = get_dataloader(data_train, feature_type)
-    valid_dataloader = get_dataloader(data_val, feature_type)
+    if test:
+        valid_dataloader = get_dataloader(data_test, feature_type)
+    else:
+        valid_dataloader = get_dataloader(data_val, feature_type)
 
     # Initialize model
     input = train_dataloader.dataset.__getitem__(0)[0]
@@ -112,7 +131,7 @@ def train(args):
     # Initialize model & dataloaders
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, train_dataloader, val_dataloader = init_train(
-        feature_type=args.feature_type, device=device, fold=args.fold
+        feature_type=args.feature_type, device=device, fold=args.fold, test=args.test
     )
 
     # Initialize scheduler
@@ -136,11 +155,52 @@ def train(args):
         resume=resume,
         checkpoint_name=f"mlp_{args.feature_type}_{args.fold}.pt",
     )
+    if args.resume_training:
+        trainer.load_model()
 
     trainer.fit(train_dataloader, val_dataloader)
+
+
+def test(args):
+    # Initialize model & dataloaders
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model, _, test_dataloader = init_train(
+        feature_type=args.feature_type, device=device, fold=args.fold
+    )
+
+    # Initialize scheduler
+    optimizer = get_optimizer(model.parameters())
+    scheduler = torch.optim.lr_scheduler.LinearLR(
+        optimizer=optimizer,
+        start_factor=0.1,
+        end_factor=1.0,
+        total_iters=conf.EPOCHS,
+    )
+
+    # Resume WandB run
+    resume = "never" if args.new_wandb else "auto"
+
+    # Initialize trainer
+    checkpoint_name = args.checkpoint_name or f"mlp_{args.feature_type}_{args.fold}.pt"
+    trainer = MLPTrainer(
+        config=conf,
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        resume=resume,
+        checkpoint_name=checkpoint_name,
+        test=args.test,
+    )
+    trainer.load_model()
+
+    test_loss, test_mae = trainer.evaluate(test_dataloader)
+    print(f"Test loss: {test_loss:.4f}, Test MAE: {test_mae:.4f}")
 
 
 if __name__ == "__main__":
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.devices
-    train(args)
+    if args.test:
+        test(args)
+    else:
+        train(args)

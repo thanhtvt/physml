@@ -137,6 +137,7 @@ def train(args):
         scheduler=scheduler,
         resume=resume,
         checkpoint_name=checkpoint_name,
+        test=args.test,
     )
     if args.resume_training:
         trainer.load_model()
@@ -165,10 +166,12 @@ def test(args):
         scheduler=scheduler,
         resume=resume,
         checkpoint_name=checkpoint_name,
+        test=args.test,
     )
     trainer.load_model()
 
-    trainer.evaluate(test_dataloader)
+    test_loss, test_mae = trainer.evaluate(test_dataloader)
+    print(f"Test loss: {test_loss:.4f}, Test MAE: {test_mae:.4f}")
 
 
 if __name__ == "__main__":

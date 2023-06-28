@@ -32,6 +32,10 @@ options:
   --feature-type {coulomb,sorted,eigen}
                         Type of feature to use
   --new-wandb           Create a new wandb run
+  --resume-training     Continue training from a checkpoint
+  --test                Evaluate model on test set
+  --checkpoint-name CHECKPOINT_NAME
+                        Path to checkpoint to resume training from
 ```
 
 or to train the GNN:
@@ -47,6 +51,9 @@ options:
   --fold {0,1,2,3,4}  Fold to use for training
   --new-wandb         Create a new wandb run
   --resume-training   Continue training from a checkpoint
+  --checkpoint-name CHECKPOINT_NAME
+                      Path to checkpoint to resume training from
+  --test              Evaluate model on test set
 ```
 
 ## Results

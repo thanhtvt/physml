@@ -24,7 +24,8 @@ class Trainer:
         optimizer,
         scheduler: torch.optim.lr_scheduler._LRScheduler = None,
         resume: str = "auto",
-        checkpoint_name: str = "model.pt"
+        checkpoint_name: str = "model.pt",
+        test: bool = False,
     ):
         # create folders/files
         self.config = config
@@ -32,6 +33,7 @@ class Trainer:
         os.makedirs(os.path.dirname(self.config.LOGFILE), exist_ok=True)
         os.system(f"touch {self.config.LOGFILE}")
 
+        self.test = test
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model
         self.scheduler = scheduler
@@ -40,15 +42,16 @@ class Trainer:
         self.logger = get_logger(config.LOGFILE)
         self.checkpoint_path = os.path.join(config.CHECKPOINT_DIR, checkpoint_name)
 
-        # Init WandB
-        wandb_id = None if resume == "never" else config.WANDB_ID
-        wandb.init(
-            project=self.config.WANDB_PROJECT,
-            dir=self.config.WANDB_DIR,
-            resume=resume,
-            id=wandb_id,
-        )
-        wandb.save(self.config.CONFIG_PATH)
+        if not test:
+            # Init WandB
+            wandb_id = None if resume == "never" else config.WANDB_ID
+            wandb.init(
+                project=self.config.WANDB_PROJECT,
+                dir=self.config.WANDB_DIR,
+                resume=resume,
+                id=wandb_id,
+            )
+            wandb.save(self.config.CONFIG_PATH)
 
     def fit(self, train_dataloader, val_dataloader):
         # Track gradients, weights, and biases
@@ -98,20 +101,24 @@ class Trainer:
         return torch.mean(torch.abs(y_true - y_pred))
 
     def save_model(self, epoch: int, loss: float):
-        torch.save({
-            "optimizer": self.optimizer.state_dict(),
+        save_dict = {
             "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
             "epoch": epoch,
             "loss": loss,
-        }, self.checkpoint_path)
+        }
+        save_dict["scheduler"] = self.scheduler.state_dict() if self.scheduler else None
+        torch.save(save_dict, self.checkpoint_path)
 
     def load_model(self):
-        checkpoint = torch.load(self.checkpoint_path)
-        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        checkpoint = torch.load(self.checkpoint_path, map_location=self.device)
         self.model.load_state_dict(checkpoint["model"])
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.scheduler.load_state_dict(checkpoint["scheduler"]) if self.scheduler else None
         epoch = checkpoint["epoch"]
         loss = checkpoint["loss"]
-        self.log(f"Loaded checkpoint from epoch {epoch} with loss {loss:.4f}")
+        self.log(f"Loaded checkpoint from epoch {epoch} with validation loss {loss:.4f}")
+        print(f"Loaded checkpoint from epoch {epoch} with validation loss {loss:.4f}")
 
     def log(self, msg: str):
         # tqdm.write(msg)
@@ -125,7 +132,7 @@ class MLPTrainer(Trainer):
         torch.set_grad_enabled(False)
         running_loss = 0.0
         maes = 0.0
-        for idx, (X, y) in enumerate(val_dataloader):
+        for _, (X, y) in enumerate(val_dataloader):
             X, y = X.to(self.device), y.to(self.device)
             y_pred = self.model(X, self.config.ENERGY_STD,
                                 self.config.ENERGY_MEAN)
@@ -169,7 +176,7 @@ class GraphTrainer(Trainer):
         torch.set_grad_enabled(False)
         running_loss = 0.0
         maes = 0.0
-        for idx, data in enumerate(val_dataloader):
+        for _, data in enumerate(val_dataloader):
             labels = data.y.to(self.device)
             x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
             x = x.to(self.device)
