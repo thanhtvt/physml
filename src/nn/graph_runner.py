@@ -35,6 +35,17 @@ def parse_args():
         action="store_true",
         help="Continue training from a checkpoint",
     )
+    parser.add_argument(
+        "--checkpoint-name",
+        type=str,
+        default=None,
+        help="Path to checkpoint to resume training from",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Evaluate model on test set",
+    )
     args = parser.parse_args()
     return args
 
@@ -118,13 +129,14 @@ def train(args):
     resume = "never" if args.new_wandb else "auto"
 
     # Initialize trainer
+    checkpoint_name = args.checkpoint_name or f"graph_{conf.LOGNAME}_{args.fold}.pt"
     trainer = GraphTrainer(
         config=conf,
         model=model,
         optimizer=optimizer,
         scheduler=scheduler,
         resume=resume,
-        checkpoint_name=f"graph2_{args.fold}.pt",
+        checkpoint_name=checkpoint_name,
     )
     if args.resume_training:
         trainer.load_model()
@@ -132,7 +144,37 @@ def train(args):
     trainer.fit(train_dataloader, test_dataloader)
 
 
+def test(args):
+    # Initialize model & dataloaders
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model, _, test_dataloader = init_train(device, args.fold)
+
+    # Initialize scheduler
+    optimizer = get_optimizer(model.parameters())
+    scheduler = None
+
+    # Resume WandB run
+    resume = "never" if args.new_wandb else "auto"
+
+    # Initialize trainer
+    checkpoint_name = args.checkpoint_name or f"graph_{conf.LOGNAME}_{args.fold}.pt"
+    trainer = GraphTrainer(
+        config=conf,
+        model=model,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        resume=resume,
+        checkpoint_name=checkpoint_name,
+    )
+    trainer.load_model()
+
+    trainer.evaluate(test_dataloader)
+
+
 if __name__ == "__main__":
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.devices
-    train(args)
+    if args.test:
+        test(args)
+    else:
+        train(args)

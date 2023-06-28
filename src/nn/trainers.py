@@ -26,7 +26,12 @@ class Trainer:
         resume: str = "auto",
         checkpoint_name: str = "model.pt"
     ):
+        # create folders/files
         self.config = config
+        os.makedirs(self.config.CHECKPOINT_DIR, exist_ok=True)
+        os.makedirs(os.path.dirname(self.config.LOGFILE), exist_ok=True)
+        os.system(f"touch {self.config.LOGFILE}")
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model
         self.scheduler = scheduler
@@ -34,11 +39,6 @@ class Trainer:
         self.loss_fn = torch.nn.MSELoss()
         self.logger = get_logger(config.LOGFILE)
         self.checkpoint_path = os.path.join(config.CHECKPOINT_DIR, checkpoint_name)
-
-        # create folders/files
-        os.makedirs(self.config.CHECKPOINT_DIR, exist_ok=True)
-        os.makedirs(os.path.dirname(self.config.LOGFILE), exist_ok=True)
-        os.system(f"touch {self.config.LOGFILE}")
 
         # Init WandB
         wandb_id = None if resume == "never" else config.WANDB_ID
@@ -48,6 +48,7 @@ class Trainer:
             resume=resume,
             id=wandb_id,
         )
+        wandb.save(self.config.CONFIG_PATH)
 
     def fit(self, train_dataloader, val_dataloader):
         # Track gradients, weights, and biases

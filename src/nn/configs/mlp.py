@@ -1,4 +1,9 @@
+import os
+from datetime import datetime
+
+
 PROJECT_DIR = "/home/jonnyjack/workspace/FPTAI/research-test/son-hy/physml"
+CONFIG_PATH = os.path.abspath(__file__)
 
 # DATA CONFIGS
 DATA_DIR = PROJECT_DIR + "/data"
@@ -15,7 +20,8 @@ ENERGY_MEAN = -1538.0377
 ENERGY_STD = 223.91891
 
 # LOGGING
-LOGFILE = PROJECT_DIR + "/logs/nn.log"
+LOGNAME = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+LOGFILE = PROJECT_DIR + "/logs/graph/" + LOGNAME + ".log"
 
 # WANDB CONFIG
 WANDB_PROJECT = "physml"
