@@ -24,6 +24,9 @@ python mlp_runner.py [-h] [--devices DEVICES]
                      [--fold {0,1,2,3,4}]
                      [--feature-type {coulomb,sorted,eigen}]
                      [--new-wandb]
+                     [--resume-training]
+                     [--test]
+                     [--checkpoint-name CHECKPOINT_NAME]
 
 options:
   -h, --help            show this help message and exit
@@ -44,6 +47,9 @@ python graph_runner.py [-h] [--devices DEVICES]
                        [--fold {0,1,2,3,4}]
                        [--resume-training]
                        [--new-wandb]
+                       [--resume-training]
+                       [--checkpoint-name CHECKPOINT_NAME]
+                       [--test]
 
 options:
   -h, --help          show this help message and exit
