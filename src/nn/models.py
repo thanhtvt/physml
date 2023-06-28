@@ -22,6 +22,7 @@ class MultiLayerPerceptron(nn.Module):
                 self.layers.add_module(f"linear_{i}", nn.Linear(input_size, h))
             else:
                 self.layers.add_module(f"linear_{i}", nn.Linear(hidden_sizes[i - 1], h))
+            self.layers.add_module(f"batchnorm_{i}", nn.BatchNorm1d(h))
             self.set_activation(activation_type, index=i)
             self.layers.add_module(f"dropout_{i}", nn.Dropout(dropout_rate))
         self.layers.add_module(f"linear_{i + 1}", nn.Linear(hidden_sizes[-1], output_size))

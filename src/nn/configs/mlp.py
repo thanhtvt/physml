@@ -21,12 +21,12 @@ ENERGY_STD = 223.91891
 
 # LOGGING
 LOGNAME = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-LOGFILE = PROJECT_DIR + "/logs/graph/" + LOGNAME + ".log"
+LOGFILE = PROJECT_DIR + "/logs/mlp/" + LOGNAME + ".log"
 
 # WANDB CONFIG
 WANDB_PROJECT = "physml"
 WANDB_DIR = PROJECT_DIR + "/logs"
-WANDB_ID = "jneuq184"
+WANDB_ID = "lqqipj4h"
 
 # TRAINING CONFIGS
 EPOCHS = 1000
@@ -34,7 +34,7 @@ BATCH_SIZE = 256
 CHECKPOINT_DIR = PROJECT_DIR + "/checkpoints/nn"
 LOG_INTERVAL = 20
 NUM_WORKERS = 8
-PATIENCE = 15
+PATIENCE = -1
 
 # MODEL CONFIGS
 HIDDEN_SIZES = [400, 100]    # [400, 100]
